@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario de Adviento</title>
+    
+    <!-- Tipografías de Google Fonts: Lettering (Great Vibes) y Redondita (Nunito) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px 50px;
+            /* CAMBIA 'fondo.jpg' POR EL NOMBRE DE TU IMAGEN EN GITHUB */
+            background-image: linear-gradient(rgba(255, 248, 250, 0.25), rgba(255, 248, 250, 0.25)), url('https://i.imgur.com/sMM84WH.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: #4a3b42;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 35px;
+            background: rgba(255, 255, 255, 0.72);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 20px 40px;
+            border-radius: 28px;
+            box-shadow: 0 8px 32px rgba(180, 130, 150, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            max-width: 650px;
+            width: 100%;
+        }
+
+        h1 {
+            font-family: 'Great Vibes', cursive;
+            font-size: clamp(2.8rem, 6vw, 4.2rem);
+            font-weight: 400;
+            color: #8c4a63;
+            line-height: 1.1;
+            margin-bottom: 6px;
+            text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.8);
+        }
+
+        .subtitle {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(0.95rem, 2.5vw, 1.15rem);
+            font-weight: 600;
+            color: #6d535e;
+            letter-spacing: 0.3px;
+        }
+
+        /* Cuadrícula de las 24 casillas */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 18px;
+            max-width: 900px;
+            width: 100%;
+            perspective: 1200px; /* Necesario para el efecto 3D de la ventana */
+        }
+
+        @media (min-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: repeat(6, 1fr);
+                gap: 20px;
+            }
+        }
+
+        /* Contenedor base de cada casilla */
+        .day-slot {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            border-radius: 20px;
+            cursor: pointer;
+            user-select: none;
+            /* Fondo interior que se ve cuando se abre la puerta */
+            background: rgba(255, 240, 245, 0.9);
+            box-shadow: inset 0 0 15px rgba(140, 74, 99, 0.2), 0 6px 16px rgba(0, 0, 0, 0.12);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .day-slot:not(.locked):hover {
+            transform: translateY(-4px);
+            box-shadow: inset 0 0 15px rgba(140, 74, 99, 0.2), 0 12px 24px rgba(140, 74, 99, 0.25);
+        }
+
+        /* Brillo interior al abrir */
+        .inner-glow {
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #8c4a63;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .day-slot.opening .inner-glow {
+            opacity: 1;
+        }
+
+        /* La puerta o ventanita de la casilla */
+        .door {
+            position: absolute;
+            inset: 0;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            border: 2px dashed rgba(176, 112, 137, 0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.9rem;
+            font-weight: 800;
+            color: #8c4a63;
+            /* Bisagra a la izquierda */
+            transform-origin: left center;
+            transition: transform 0.85s cubic-bezier(0.34, 1.35, 0.64, 1), background 0.3s ease;
+            backface-visibility: hidden;
+            z-index: 2;
+        }
+
+        /* Estilo cuando la casilla aún no está disponible */
+        .day-slot.locked {
+            cursor: not-allowed;
+        }
+
+        .day-slot.locked .door {
+            background: rgba(245, 240, 242, 0.52);
+            border: 2px dashed rgba(150, 130, 140, 0.4);
+            color: rgba(110, 90, 100, 0.65);
+        }
+
+        /* Estilo para días que ya pasaron (opcional, sutil toque rosado) */
+        .day-slot.past .door {
+            background: rgba(255, 238, 244, 0.82);
+        }
+
+        /* Animación de apertura de ventana */
+        .day-slot.opening .door {
+            transform: rotateY(-125deg);
+            background: rgba(255, 255, 255, 0.95);
+        }
+
+        /* Animación de vibración si se pulsa un día bloqueado */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-5px) rotate(-1deg); }
+            40% { transform: translateX(5px) rotate(1deg); }
+            60% { transform: translateX(-4px); }
+            80% { transform: translateX(4px); }
+        }
+
+        .shake {
+            animation: shake 0.4s ease-in-out;
+        }
+
+        /* Aviso flotante cuando intentan abrir un día futuro */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(140, 74, 99, 0.95);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
+            z-index: 100;
+            pointer-events: none;
+            text-align: center;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Calendario de Adviento</h1>
+        <p class="subtitle">Diciembre a tu lado, 24 días haciéndote sonreír</p>
+    </header>
+
+    <main class="calendar-grid" id="calendar"></main>
+
+    <div class="toast" id="toast">Aún no toca abrir este día</div>
+
+    <script>
+        const calendarContainer = document.getElementById('calendar');
+        const toast = document.getElementById('toast');
+        let toastTimeout;
+
+        // ==========================================
+        // CONFIGURACIÓN DE FECHA Y PRUEBAS
+        // ==========================================
+        // Pon 'true' si quieres poder abrir cualquier día ahora mismo para probarlo.
+        // Cuando lo subas definitivo para diciembre, déjalo en 'false'.
+        const MODO_PRUEBA = false; 
+
+        // Orden desordenado clásico de calendario de adviento (o puedes poner del 1 al 24 en orden)
+        const ordenDias = [
+            14, 3, 21, 8, 17, 1,
+            24, 11, 5, 19, 12, 6,
+            2, 16, 22, 9, 4, 15,
+            20, 7, 13, 23, 10, 18
+        ];
+
+        function esDiaDesbloqueado(numeroDia) {
+            if (MODO_PRUEBA) return true;
+
+            const hoy = new Date();
+            const mes = hoy.getMonth(); // En JS: Enero = 0 ... Noviembre = 10, Diciembre = 11
+            const diaActual = hoy.getDate();
+
+            // Si estamos en diciembre (mes 11), se abre si el día actual es mayor o igual al de la casilla
+            if (mes === 11) {
+                return diaActual >= numeroDia;
+            }
+            
+            // Si aún es noviembre o antes, todos bloqueados
+            return false;
+        }
+
+        function mostrarAviso(texto) {
+            toast.textContent = texto;
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // Generar las 24 casillas
+        ordenDias.forEach(dia => {
+            const slot = document.createElement('div');
+            slot.classList.add('day-slot');
+
+            const desbloqueado = esDiaDesbloqueado(dia);
+            if (!desbloqueado) {
+                slot.classList.add('locked');
+            }
+
+            // Interior de la casilla (se ve al abrir la puerta)
+            const innerGlow = document.createElement('div');
+            innerGlow.classList.add('inner-glow');
+            innerGlow.textContent = `Día ${dia}`;
+
+            // Puerta de la ventanita
+            const door = document.createElement('div');
+            door.classList.add('door');
+            door.textContent = dia;
+
+            slot.appendChild(innerGlow);
+            slot.appendChild(door);
+
+            slot.addEventListener('click', () => {
+                if (!desbloqueado) {
+                    slot.classList.remove('shake');
+                    void slot.offsetWidth; // Reinicia animación
+                    slot.classList.add('shake');
+                    mostrarAviso(`Aún no es ${dia} de diciembre, ¡un poquito de paciencia!`);
+                    return;
+                }
+
+                // Evitar doble clic mientras se abre
+                if (slot.classList.contains('opening')) return;
+
+                // Activar transición 3D de apertura
+                slot.classList.add('opening');
+
+                // Esperar a que termine la animación de la ventana antes de ir a diaX.html
+                setTimeout(() => {
+                    window.location.href = `dia${dia}.html`;
+                }, 750);
+            });
+
+            calendarContainer.appendChild(slot);
+        });
+    </script>
+</body>
+</html>
